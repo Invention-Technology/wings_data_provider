@@ -31,6 +31,7 @@ class WingsRemoteProvider {
     Function(Response, int)? onError,
     Function(int, int)? onSendProgress,
     Function(int, int)? onReceiveProgress,
+    ResponseType? responseType,
   }) async {
     try {
       Response<dynamic> response = await dio
@@ -40,7 +41,8 @@ class WingsRemoteProvider {
         options: Options(
           method: method.name,
           headers: request.header,
-          receiveTimeout: 0,
+          responseType: responseType,
+          receiveTimeout: Duration(days: 1),
           validateStatus: (status) {
             return status != null && status < 500;
           },
@@ -49,7 +51,7 @@ class WingsRemoteProvider {
         onReceiveProgress: onReceiveProgress,
       )
           .timeout(
-        Duration(milliseconds: dio.options.sendTimeout),
+        Duration(milliseconds: dio.options.sendTimeout!.inMilliseconds),
         onTimeout: () {
           throw WingsException.fromEnumeration(ExceptionTypes.timeout);
         },
@@ -82,6 +84,7 @@ class WingsRemoteProvider {
     List<int> successStates = const [200, 201, 202],
     Function(Response, int)? onSuccess,
     Function(Response, int)? onError,
+    CancelToken? cancelToken,
     bool overrideIfExists = false,
   }) async {
     if (await File(savePath).exists() && !overrideIfExists) {
@@ -92,9 +95,10 @@ class WingsRemoteProvider {
             .download(
           request.url,
           savePath,
+          cancelToken: cancelToken,
           options: Options(
             headers: request.header,
-            receiveTimeout: 0,
+            receiveTimeout: const Duration(days: 1),
             validateStatus: (status) {
               return status != null && status < 500;
             },
@@ -102,7 +106,7 @@ class WingsRemoteProvider {
           onReceiveProgress: onProgress,
         )
             .timeout(
-          Duration(milliseconds: dio.options.sendTimeout),
+          Duration(milliseconds: dio.options.sendTimeout!.inMilliseconds),
           onTimeout: () {
             throw WingsException.fromEnumeration(ExceptionTypes.timeout);
           },
